@@ -1,0 +1,13 @@
+[+] auto>manual> ! auto mode, when trying to stop the valve in mid closing(in auto mode). valve will stop when manual mode button pressed(must press twice) 
+    but becomes non-responsive and must press both buttons to close, when it does close it pegs the current. 
+[+] manual, opening, press stop, does not restart with start/stop(but does when closing in manual mode), must press reset then when reaches full close, 
+    ignores current threshold and pegs full current.
+	  Serial says it thinks it is in the opening function, when in fact it is closing
+[-] auto mode, when closing, must press start/stop button twice to pause valve. same as above must clear by pressing reset then ignores current thrushold
+[-] fix valve clear mode, lower current threshold, currently must hold start/stop mode to exit valve clear mode
+
+[*] open/close travel time: 20s
+
+
+[-] open, pause, turn on feed relay. this feed relay(auger) will start loading the fuel - the desired series of steps.
+[-] alarm relay should trigger if there is a serious error (auger) if jammed and full.
