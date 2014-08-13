@@ -267,9 +267,8 @@ void Opening() {
   if (valve_btn_press) {              // button pressed 
     // move to open state
     valve_btn_press = 0;
+		digitalWrite(ValveOpenPin, LOW);	// why was this removed?
     state = Open_state;
-//    Open();
-//    StartClosing();
     locked = 1;
     return;
   }
@@ -278,27 +277,23 @@ void Opening() {
     return;
   }
 
-//  if (duration > MaxMotorTime) { // Valve time-out
-//    if(debug) {Serial.println("Duration timeout. Duration = " + duration); }
-//    digitalWrite(NoValveLED, L_ON);
-//    digitalWrite(ValveOpenPin, LOW);
-//    locked = true;
-//    StartClosing();
-//    state = Open_state;
-//    return;
-//  }
+  if (duration > MaxMotorTime) { // Valve time-out
+    if(debug) {Serial.println("Duration timeout. Duration = " + duration); }
+    digitalWrite(NoValveLED, L_ON);
+    digitalWrite(ValveOpenPin, LOW);
+    locked = true;
+    StartClosing();
+    return;
+  }
     
   if (current > CurrentThreshold) {
     
     if(debug) {Serial.println("Valve jammed in CurrentThreshold loop..."); }			// valve jammed 
-    StartTryingToClearValveJam();    
-    if(debug) {Serial.println("[-] DOES THE PREVOIUS FUNCTION RETURN"); }      
 
-//    digitalWrite(ValveOpenPin, LOW);    // current trip, stop opening. 
-//    digitalWrite(JamLED, L_ON);					// light it up; we got a problem.
-//    locked = true;											// stop automatic operation.
-//    StartClosing();		
-    									// close it up if we can. 
+    digitalWrite(ValveOpenPin, LOW);    // current trip, stop opening. 
+    digitalWrite(JamLED, L_ON);					// light it up; we got a problem.
+    locked = true;											// stop automatic operation.
+    StartClosing();    									// close it up if we can. 
   }
   else if (digitalRead(OpenSens) == LOW) { // reached fully open  
     digitalWrite(ValveOpenPin, LOW);  // stop the valve drive motor.
@@ -307,17 +302,12 @@ void Opening() {
   
     digitalWrite(JamLED, L_OFF);       // clear the error light, the valve is clear. 		
     if (locked) {                     // this process began from a button-press
-      Open();
+      state = Open_state;
     }
     else {                            // normal operating conditions
       StartFilling();
     }
-    return;
-  }	
-//  else {
-//    state = Opening_state;
-//  }	
-
+  }
 }
 
 void Open() {                    // this is a manual-open state.
@@ -457,7 +447,7 @@ void Filling() {
     }
   }   
   if (digitalRead(UpperSens) && digitalRead(LowerSens)) {
-    digitalWrite(FillPin, LOW);    // current trip, stop filling. 
+    digitalWrite(FillPin, LOW);    // Sensors read full, stop filling. 
     StartWaitingToClose();
   }
   
