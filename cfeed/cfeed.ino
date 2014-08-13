@@ -438,6 +438,7 @@ void Closed() {
 //////////////////////////////////////////////////////////////////////////
 void Filling() {
   duration = millis() - start_time;
+  digitalWrite(ValveOpenPin, LOW);    // Just in case of bleary-eyed coders. 
     
   if (valve_btn_press) {
     // move to open state
@@ -447,21 +448,9 @@ void Filling() {
     digitalWrite(FillPin, LOW);
     return;
   }
-  if (digitalRead(UpperSens) == LOW) {
-    if(digitalRead(LowerSens) == LOW) {
-      if (digitalRead(OpenSens) == HIGH) { // reached fully open  
-        digitalWrite(ValveOpenPin, HIGH);  // stop the valve drive motor. FIXME: why is this being set high? 
-      }
-      else {
-        digitalWrite(ValveOpenPin, LOW);  // FIXME: why is this necessary? shouldn't it just set and forget? 
-      }
-    }
-    else {
-     return; 
-    }
-  }   
-  if (digitalRead(UpperSens) && digitalRead(LowerSens)) {
-    digitalWrite(FillPin, LOW);    // Sensors read full, stop filling. 
+
+  if (digitalRead(UpperSens)) {     // we only require the upper sensor to be high because of the possibility of bridging. 
+    digitalWrite(FillPin, LOW);     // Sensors read full, stop filling. 
     StartWaitingToClose();
   }
   
