@@ -40,7 +40,8 @@ level of solid fuel in the hopper of a power pallet.
 
 //{ Timings in milliseconds
 #define MaxMotorTime 26000
-#define InrushTime 50
+#define OpenInrushTime 150
+#define CloseInrushTime 50
 #define MaxFillTime  1200000  // 1200s = 20m
 #define WaitToCloseTime 500
 #define DebounceTime 50
@@ -48,7 +49,7 @@ level of solid fuel in the hopper of a power pallet.
 
 //{ Other #defines
 #define CurrentThreshold 70
-#define HighPowerCurrentThreshold 120
+#define HighPowerCurrentThreshold 100
 #define L_ON 0
 #define L_OFF 1
 //}
@@ -56,6 +57,7 @@ level of solid fuel in the hopper of a power pallet.
 //{ Variables
 int state = 0;
 int current = 0;
+long duration = 0;
 boolean locked  = 0;
 boolean bridged = 0;
 boolean debug = true;
@@ -262,9 +264,8 @@ void CheckButtons() {
 // Ready to start movin and shakin. and hopefully closing too
 ///////////////////////////////////////////////////////////////////////////////
 void Opening() {
-  static long duration = 0;
   duration = millis() - start_time;
-  current = analogRead(CurrentSens);
+  current = analogRead(CurrentSens); 
   
   if (valve_btn_press) {              // button pressed 
     // move to open state
@@ -275,7 +276,7 @@ void Opening() {
     return;
   }
   
-  if (duration < InrushTime) {        // inrush phase, keep going    
+  if (duration < OpenInrushTime) {        // inrush phase, keep going    
     return;
   }
 
@@ -343,7 +344,6 @@ void Open() {                    // this is a manual-open state.
 }
 
 void Closing() {
-  static long duration = 0;
   static byte close_attempts = 0;
   duration = millis() - start_time;
   current = analogRead(CurrentSens);
@@ -356,7 +356,7 @@ void Closing() {
     return;
   }
 
-  if (duration < InrushTime) {					// inrush phase, keep going
+  if (duration < CloseInrushTime) {					// inrush phase, keep going
     return;
   }
 	
@@ -374,13 +374,17 @@ void Closing() {
 			if(debug) {Serial.println("valve jammed closing"); }
 			
 			digitalWrite(ValveClosePin, LOW);   // current trip, stop opening.  
+      digitalWrite(JamLED, L_ON);
 			
-			if (++close_attempts > 5) {
-				delay(100);
+			if (close_attempts < 5) {
+        close_attempts++;
 				StartOpening();
 			}
 			else {
+        if(debug) Serial.println("no close attempt");
 				digitalWrite(AlarmPin, 1);
+        state = Open_state;
+        
 			}
 		}
 	}
@@ -420,7 +424,6 @@ void Closed() {
 // All the things other than opening and closing 
 //////////////////////////////////////////////////////////////////////////
 void Filling() {
-  static long duration = 0;
   duration = millis() - start_time;
     
   if (valve_btn_press) {
@@ -458,7 +461,6 @@ void Filling() {
 }
 
 void WaitingToClose() {
-  static long duration = 0;
   duration = millis() - start_time;
   
   if (valve_btn_press) {
@@ -623,7 +625,6 @@ void StartOpening() {
   state = Opening_state;
   start_time = millis();  
   digitalWrite(ValveOpenPin, HIGH);
-  delay(500);
 }
 
 void StartClosing() {
