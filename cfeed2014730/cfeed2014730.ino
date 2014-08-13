@@ -581,9 +581,16 @@ void TryToClearValveJam() {
   return;  
 }   
 
-
+///////////////////////////////////////////////////////////////////////
 //  TODO: GoBkack/GoFowrward need a little refactoring to work as expected with the 
-//  calling function above. Currently works but issues are obvious. 
+//  calling function above. Currently works but issues are obvious.
+//
+//  NEZ: this forward reverse should be based on the surpassing the current limit, so if the current>CurrentThreshold, 
+//  it should reverse for xsec (maybe 1000, [one half cycle] or open switch, whichever comes first) and then close until current trip
+//  repeating this some n-number of times, maybe raising currentsence each time incrementally until the max (10A)
+//  before raising an alarm, and callin for a PP shutdown over open gate.
+////////////////////////////////////////////////////////////////////////////////////////////////
+
 void GoBackwards() {
   static unsigned long backwards_end_time = 80000;
   unsigned long backwards_start_time = 0;
