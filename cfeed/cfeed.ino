@@ -6,23 +6,6 @@ level of solid fuel in the hopper of a power pallet.
 */
 
 //#include "
-/* CFeed1 board pinout
-#define ValveOpenPin  A0
-#define ValveClosePin A2
-#define FillPin  A3
-
-#define JamLED     9
-#define NoValveLED 10
-#define NoFillLED  11
-#define BridgeLED  12
-#define LockedLED  13
-
-#define UpperSens  4
-#define LowerSens  5
-#define ValveBTN   6
-#define ClearBTN   7
-#define CurrentSens A1
-*/
 
 //{ CFeed2 board pinout 
 #define ValveOpenPin	A0
@@ -65,6 +48,8 @@ level of solid fuel in the hopper of a power pallet.
 
 //{ Other #defines
 #define CurrentThreshold 70
+#define L_ON 0
+#define L_OFF 1
 //}
 
 //{ Variables
@@ -109,27 +94,27 @@ void setup() {
   // TODO: Flash firmware version number with the LEDs on startup. having units deployed
   // at different develoment cycles will potentially become confusing. 
   for (int i=0; i<3; i++) {  
-    digitalWrite(JamLED, HIGH);
+    digitalWrite(JamLED, L_ON);
     delay(100);
-    digitalWrite(JamLED, LOW);
+    digitalWrite(JamLED, L_OFF);
 
-    digitalWrite(NoValveLED, HIGH);
+    digitalWrite(NoValveLED, L_ON);
     delay(100);
-    digitalWrite(NoValveLED, LOW);
+    digitalWrite(NoValveLED, L_OFF);
  		
-    digitalWrite(NoFillLED, HIGH);
+    digitalWrite(NoFillLED, L_ON);
     delay(100);
-    digitalWrite(NoFillLED, LOW);
+    digitalWrite(NoFillLED, L_OFF);
 
-    digitalWrite(BridgeLED, HIGH);
+    digitalWrite(BridgeLED, L_ON);
     delay(100);
-    digitalWrite(BridgeLED, LOW);
+    digitalWrite(BridgeLED, L_OFF);
 	
-    digitalWrite(LockedLED, HIGH);	
+    digitalWrite(LockedLED, L_ON);	
     delay(100);
-    digitalWrite(LockedLED, LOW);		
+    digitalWrite(LockedLED, L_OFF);		
   }  
-  digitalWrite(NoValveLED, LOW);  // i'm not sure this line is necessary
+  digitalWrite(NoValveLED, L_OFF);  // i'm not sure this line is necessary
 
 
   // Make sure nothing is moving
@@ -225,14 +210,14 @@ void CheckState() {
 void CheckForBridging() {
   if (digitalRead(UpperSens) && !digitalRead(LowerSens)) {
     bridged = 1;
-    digitalWrite(BridgeLED, LOW);
+    digitalWrite(BridgeLED, L_ON);
   }
   else if (firstStartup == true) {
-    digitalWrite(BridgeLED, LOW);
+    digitalWrite(BridgeLED, L_OFF);
   }
   else  {
     bridged = 0;
-    digitalWrite(BridgeLED, HIGH);
+    digitalWrite(BridgeLED, L_OFF);
   }
 }
 
@@ -246,11 +231,11 @@ void CheckButtons() {
   if (digitalRead(ClearBTN)) {
     locked = false;
     firstStartup = false;
-    digitalWrite(NoValveLED, HIGH);
-    digitalWrite(NoFillLED, HIGH);
-    digitalWrite(LockedLED, HIGH);	
-    digitalWrite(JamLED, HIGH);
-    digitalWrite(BridgeLED, HIGH);
+    digitalWrite(NoValveLED, L_OFF);
+    digitalWrite(NoFillLED, L_OFF);
+    digitalWrite(LockedLED, L_OFF);	
+    digitalWrite(JamLED, L_OFF);
+    digitalWrite(BridgeLED, L_OFF);
   }
   
   // check Valve button.  double-latch: 1: debounce 2: require release before reset
@@ -300,7 +285,7 @@ void Opening() {
 
 //  if (duration > MaxMotorTime) { // Valve time-out
 //    if(debug) {Serial.println("Duration timeout. Duration = " + duration); }
-//    digitalWrite(NoValveLED, LOW);
+//    digitalWrite(NoValveLED, L_ON);
 //    digitalWrite(ValveOpenPin, LOW);
 //    locked = true;
 //    StartClosing();
@@ -315,7 +300,7 @@ void Opening() {
     if(debug) {Serial.println("[-] DOES THE PREVOIUS FUNCTION RETURN"); }      
 
 //    digitalWrite(ValveOpenPin, LOW);    // current trip, stop opening. 
-//    digitalWrite(JamLED, HIGH);					// light it up; we got a problem.
+//    digitalWrite(JamLED, L_ON);					// light it up; we got a problem.
 //    locked = true;											// stop automatic operation.
 //    StartClosing();		
     									// close it up if we can. 
@@ -325,7 +310,7 @@ void Opening() {
   
     if(debug) {Serial.println("Fully open state detected..."); }
   
-    digitalWrite(JamLED, HIGH);       // clear the error light, the valve is clear. 		
+    digitalWrite(JamLED, L_OFF);       // clear the error light, the valve is clear. 		
     if (locked) {                     // this process began from a button-press
       Open();
     }
@@ -397,7 +382,7 @@ void Closing() {
 //  }
 	
 //  if (duration > MaxMotorTime) { 	// valve time-out
-//      digitalWrite(NoValveLED, LOW);
+//      digitalWrite(NoValveLED, L_ON);
 //      digitalWrite(ValveClosePin, LOW);
 //      locked = true;
 //      state = Open_state;
@@ -422,11 +407,11 @@ void Closing() {
       }      
     }    
     else if (locked) {                    // reached fully open, but close began with a button-press
-      digitalWrite(JamLED, HIGH);         // clear the error light, the valve is clear. 
+      digitalWrite(JamLED, L_OFF);         // clear the error light, the valve is clear. 
       state = Closed_state;
     }
     else {                                // Timing right, automatic operation.
-      digitalWrite(JamLED, HIGH);         // clear the error light, the valve is clear. 
+      digitalWrite(JamLED, L_OFF);         // clear the error light, the valve is clear. 
       state = Closed_state;
     }
     return;
@@ -473,10 +458,10 @@ void Filling() {
   if (digitalRead(UpperSens) == LOW) {
     if(digitalRead(LowerSens) == LOW) {
       if (digitalRead(OpenSens) == HIGH) { // reached fully open  
-        digitalWrite(ValveOpenPin, HIGH);  // stop the valve drive motor.
+        digitalWrite(ValveOpenPin, HIGH);  // stop the valve drive motor. FIXME: why is this being set high? 
       }
       else {
-        digitalWrite(ValveOpenPin, LOW);  
+        digitalWrite(ValveOpenPin, LOW);  // FIXME: why is this necessary? shouldn't it just set and forget? 
       }
     }
     else {
@@ -491,7 +476,7 @@ void Filling() {
   else if (duration > MaxFillTime) {
     digitalWrite(FillPin, LOW);
     locked = true;
-    digitalWrite(NoFillLED, LOW);
+    digitalWrite(NoFillLED, L_ON);
     StartWaitingToClose();
   }
 }
