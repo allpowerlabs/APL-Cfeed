@@ -48,6 +48,7 @@ level of solid fuel in the hopper of a power pallet.
 
 //{ Other #defines
 #define CurrentThreshold 70
+#define HighPowerCurrentThreshold 120
 #define L_ON 0
 #define L_OFF 1
 //}
@@ -196,10 +197,10 @@ void CheckState() {
     WaitingToClose();
     break;
 
-    case TryToClear_valve: 
+    /* case TryToClear_valve: 
     if(debug) {Serial.println("State:TryToClear");}
     TryToClearValveJam();
-    break;
+    break; */
     
     default:
     state = 0;
@@ -287,7 +288,6 @@ void Opening() {
   }
     
   if (current > CurrentThreshold) {
-    
     if(debug) {Serial.println("Valve jammed in CurrentThreshold loop..."); }			// valve jammed 
 
     digitalWrite(ValveOpenPin, LOW);    // current trip, stop opening. 
@@ -344,6 +344,7 @@ void Open() {                    // this is a manual-open state.
 
 void Closing() {
   static long duration = 0;
+	static byte close_attempts = 0;
   duration = millis() - start_time;
   current = analogRead(CurrentSens);
   
@@ -477,7 +478,6 @@ void WaitingToClose() {
 }
 
 /*void TryToClearValveJam() {
-  static unsigned long HighPowerCurrentThreshold = 120;
   unsigned long pause_time = 0;
   unsigned long end_time = 4000UL; 
   int repetition = 1;
