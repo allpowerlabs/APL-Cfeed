@@ -165,46 +165,47 @@ void loop() {
 }
 
 void CheckState() {
-  
+  static int last_state = 0;
   switch (state) {
     case Closed_state:
-    if(debug) {Serial.println("State:Closed");}
+    if(debug && (state != last_state)) {Serial.println("State:Closed");}
     Closed();
     break;
     
     case Opening_state: 
-    if(debug) {Serial.println("State:Opening");}
+    if(debug && (state != last_state)) {Serial.println("State:Opening");}
     Opening();    
     break;
     
     case Open_state:
-    if(debug) {Serial.println("State:Open");}
+    if(debug && (state != last_state)) {Serial.println("State:Open");}
     Open();
     break;
     
     case Closing_state: 
-    if(debug) {Serial.println("State:Closing");}
+    if(debug && (state != last_state)) {Serial.println("State:Closing");}
     Closing();
     break;
     
     case Filling_state: 
-    if(debug) {Serial.println("State:Filling");}
+    if(debug && (state != last_state)) {Serial.println("State:Filling");}
     Filling();
     break;
     
     case WaitingToClose_state: 
-    if(debug) {Serial.println("State:WaitingToClose");}
+    if(debug && (state != last_state)) {Serial.println("State:WaitingToClose");}
     WaitingToClose();
     break;
 
     /* case TryToClear_valve: 
-    if(debug) {Serial.println("State:TryToClear");}
+    if(debug && (state != last_state)) {Serial.println("State:TryToClear");}
     TryToClearValveJam();
     break; */
     
     default:
     state = 0;
   }
+	last_state = state;
 }
 
 void CheckForBridging() {
@@ -262,9 +263,6 @@ void Opening() {
   duration = millis() - start_time;
   current = analogRead(CurrentSens);
   
-  if(debug) {Serial.println("In Opening() function"); }
-  if(debug) {Serial.println("Opening current: " + current); }
-  
   if (valve_btn_press) {              // button pressed 
     // move to open state
     valve_btn_press = 0;
@@ -311,7 +309,6 @@ void Opening() {
 }
 
 void Open() {                    // this is a manual-open state.
-  if(debug) {Serial.println("We are now in the Open() function"); }
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = 1;
@@ -347,8 +344,6 @@ void Closing() {
 	static byte close_attempts = 0;
   duration = millis() - start_time;
   current = analogRead(CurrentSens);
-  
-  if(debug) {Serial.println("In Closing() function"); }
   
   if (valve_btn_press) {		// button press. 
     valve_btn_press = 0;
@@ -422,7 +417,6 @@ void Closed() {
 // All the things other than opening and closing 
 //////////////////////////////////////////////////////////////////////////
 void Filling() {
-  if(debug) {Serial.println("Now in the Filling() function"); }
   static long duration = 0;
   duration = millis() - start_time;
     
@@ -461,7 +455,6 @@ void Filling() {
 }
 
 void WaitingToClose() {
-  if(debug) {Serial.println("Now WaitingToClose() function"); }
   static long duration = 0;
   duration = millis() - start_time;
   
