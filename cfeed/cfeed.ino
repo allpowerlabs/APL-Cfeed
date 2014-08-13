@@ -60,7 +60,6 @@ boolean bridged = 0;
 boolean debug = true;
 boolean valve_btn_press = 0;
 unsigned long start_time = 0;
-boolean firstStartup = true;
 //}
 
 
@@ -212,9 +211,6 @@ void CheckForBridging() {
     bridged = 1;
     digitalWrite(BridgeLED, L_ON);
   }
-  else if (firstStartup == true) {
-    digitalWrite(BridgeLED, L_OFF);
-  }
   else  {
     bridged = 0;
     digitalWrite(BridgeLED, L_OFF);
@@ -230,7 +226,6 @@ void CheckButtons() {
   
   if (digitalRead(ClearBTN)) {
     locked = false;
-    firstStartup = false;
     digitalWrite(NoValveLED, L_OFF);
     digitalWrite(NoFillLED, L_OFF);
     digitalWrite(LockedLED, L_OFF);	
