@@ -5,7 +5,7 @@ This code lives on an Arduino Uno that operates a prototype automatic valve for 
 level of solid fuel in the hopper of a power pallet. 
 */
 
-//#include "
+#include <EEPROM.h>
 
 //{ CFeed2 board pinout 
 #define ValveOpenPin	A0
@@ -52,6 +52,7 @@ level of solid fuel in the hopper of a power pallet.
 #define HighPowerCurrentThreshold 100
 #define L_ON 0
 #define L_OFF 1
+#define locked_EE_address 0
 //}
 
 //{ Variables
@@ -59,6 +60,7 @@ int state = 0;
 int current = 0;
 long duration = 0;
 boolean locked  = 0;
+boolean last_locked = 0; 
 boolean bridged = 0;
 boolean debug = true;
 boolean valve_btn_press = 0;
@@ -129,20 +131,20 @@ void setup() {
   ////////////////////////////////////////////////////////////////////////////
   // TODO: Noticing issues when the board is booted before the 12V valve main wile debug. Must press buttons a few times.
   if(debug) {Serial.println("Initial valve close check");}
-  if(!digitalRead(OpenSens) || !digitalRead(ClosedSens)) {
-    state = Open_state;
-    locked = true;
-  }
-	
-  else if (digitalRead(ClosedSens) && digitalRead(OpenSens)) {
+   
+  locked = EEPROM.read(locked_EE_address);    // read the stored locked state from last time we had power. 
+  last_locked = locked;
+  digitalWrite(LockedLED, (!locked));         // update LED state
+
+  if (digitalRead(ClosedSens))    // if the closed sensor is lit, we're already closed, so wake in closed state.
     state = Closed_state;
-    locked = false;
-  }
+
+  else if(locked)                 // if the valve is not closed, but we were locked before, stay put (open state). 
+    state = Open_state;
 	
-  else {           // if you're in this state i don't know whats going on. just close it. 
-    locked = false;
+  else                            // if the valve isn't closed, and we weren't locked before power cycle, try to close. 
     StartClosing();
-  }
+  
   
   //////////////////////////////////////////////////////////////////////////////////
   // To initialize main automatic operation user must press reset, to clear the 
@@ -158,12 +160,22 @@ void setup() {
 void loop() {
   CheckState();
   CheckForBridging();
-  digitalWrite(LockedLED, (!locked));
+  CheckLocked();
+  
+  
   
   // send alarm for critical conditions.
   //digitalWrite(AlarmPin, (JamLED || NoValveLED || NoFillLED));	
   
   CheckButtons();
+}
+
+void CheckLocked() {                    // This function updates the LED and EEPROM mirrors of the locked bit. 
+  if(locked == last_locked)             // only run if locked has changed. (to preserve EEPROM)
+    return;
+  last_locked = locked;                 // update last_locked to new value. 
+  digitalWrite(LockedLED, (!locked));   // update LED state
+  EEPROM.write(locked_EE_address, locked);     // store new value in EEPROM
 }
 
 void CheckState() {
