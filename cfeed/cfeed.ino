@@ -43,7 +43,7 @@ level of solid fuel in the hopper of a power pallet.
 #define OpenInrushTime 150
 #define CloseInrushTime 50
 #define MaxFillTime  1200000  // 1200s = 20m
-#define WaitToCloseTime 500
+#define WaitToCloseTime 2000
 #define DebounceTime 50
 //}
 
@@ -328,8 +328,7 @@ void Open() {                    // this is a manual-open state.
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = 1;
-//    state = WaitingToClose_state;
-    StartWaitingToClose();
+    StartClosing();
     return;
   }
   if (digitalRead(OpenSens) == LOW) { // reached fully open  
