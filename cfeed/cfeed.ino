@@ -40,7 +40,7 @@ level of solid fuel in the hopper of a power pallet.
 
 //{ Timings in milliseconds
 #define MaxMotorTime 22000
-#define InrushTime 50
+#define InrushTime 5000
 #define MaxFillTime  1200000  // 1200s = 20m
 #define WaitToCloseTime 500
 #define DebounceTime 50
@@ -165,50 +165,47 @@ void loop() {
 }
 
 void CheckState() {
-static bool state_changed = 0; 
-static int last_state = 0;
-state_changed = (state != last_state);
-last_state = state;
-
+  static int last_state = 0;
   switch (state) {
     case Closed_state:
-    if(debug && state_changed) {Serial.println("State:Closed");}
+    if(debug && (state != last_state)) {Serial.println("State:Closed");}
     Closed();
     break;
     
     case Opening_state: 
-    if(debug && state_changed) {Serial.println("State:Opening");}
+    if(debug && (state != last_state)) {Serial.println("State:Opening");}
     Opening();    
     break;
     
     case Open_state:
-    if(debug && state_changed) {Serial.println("State:Open");}
+    if(debug && (state != last_state)) {Serial.println("State:Open");}
     Open();
     break;
     
     case Closing_state: 
-    if(debug && state_changed) {Serial.println("State:Closing");}
+    if(debug && (state != last_state)) {Serial.println("State:Closing");}
     Closing();
     break;
     
     case Filling_state: 
-    if(debug && state_changed) {Serial.println("State:Filling");}
+    if(debug && (state != last_state)) {Serial.println("State:Filling");}
     Filling();
     break;
     
     case WaitingToClose_state: 
-    if(debug && state_changed) {Serial.println("State:WaitingToClose");}
+    if(debug && (state != last_state)) {Serial.println("State:WaitingToClose");}
     WaitingToClose();
     break;
 
     /* case TryToClear_valve: 
-    if(debug && state_changed) {Serial.println("State:TryToClear");}
+    if(debug && (state != last_state)) {Serial.println("State:TryToClear");}
     TryToClearValveJam();
     break; */
     
     default:
     state = 0;
   }
+	last_state = state;
 }
 
 void CheckForBridging() {
