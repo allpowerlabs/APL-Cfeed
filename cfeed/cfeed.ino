@@ -158,7 +158,7 @@ void loop() {
   digitalWrite(LockedLED, (!locked));
   
   // send alarm for critical conditions.
-  digitalWrite(AlarmPin, (JamLED || NoValveLED || NoFillLED));	
+  //digitalWrite(AlarmPin, (JamLED || NoValveLED || NoFillLED));	
   
   CheckButtons();
 }
@@ -274,9 +274,9 @@ void Opening() {
     return;
   }
   
-//  if (duration < InrushTime) {        // inrush phase, keep going    
-//    return;
-//  }
+  if (duration < InrushTime) {        // inrush phase, keep going    
+    return;
+  }
 
 //  if (duration > MaxMotorTime) { // Valve time-out
 //    if(debug) {Serial.println("Duration timeout. Duration = " + duration); }
@@ -367,48 +367,41 @@ void Closing() {
     return;
   }
 
-//////////////////////////////////////////////////////////////////////////////////////
-//  Needed to reduce variables in debug so commented out these segments
-//  TODO: Return these lines for timing. Open/Close time are 20 seconds travel time, 
-//  add some to that value to indicate there was an issues with the drive system. 
-//////////////////////////////////////////////////////////////////////////////////////
-//  if (duration < InrushTime) {					// inrush phase, keep going
-//    return;
-//  }
+  if (duration < InrushTime) {					// inrush phase, keep going
+    return;
+  }
 	
-//  if (duration > MaxMotorTime) { 	// valve time-out
-//      digitalWrite(NoValveLED, L_ON);
-//      digitalWrite(ValveClosePin, LOW);
-//      locked = true;
-//      state = Open_state;
-//      return;
-//  }
-//  if (current > CurrentThreshold && digitalRead(OpenSens)) {			// collision (current trip)    
-//    StartTryingToClearValveJam();    
-//    state = Closing_state;
-//  }    
-////////////////////////////////////////////////////////////////////////////////////  
-  if (current > CurrentThreshold) {			// collision (current trip)    
-    if(debug) {Serial.println("Current greater than CurrentThreshold within Closing() function"); }
-    digitalWrite(ValveClosePin, LOW);   // current trip, stop opening.    
-    if (!digitalRead(ClosedSens)) {    				// valve jammed
-      StartTryingToClearValveJam();    
-    if(debug) {Serial.println("[-] DOES THE PREVOIUS FUNCTION RETURN"); }      
-      if (!digitalRead(JamLED)) {
-        StartWaitingToClose();
-      }
-      else {
-        return;
-      }      
-    }    
-    else if (locked) {                    // reached fully open, but close began with a button-press
-      digitalWrite(JamLED, L_OFF);         // clear the error light, the valve is clear. 
-      state = Closed_state;
-    }
-    else {                                // Timing right, automatic operation.
-      digitalWrite(JamLED, L_OFF);         // clear the error light, the valve is clear. 
-      state = Closed_state;
-    }
+  if (duration > MaxMotorTime) { 	// valve time-out
+      digitalWrite(NoValveLED, L_ON);
+      digitalWrite(ValveClosePin, LOW);
+      locked = true;
+      state = Open_state;
+      return;
+  }
+  
+	if (!digitalRead(ClosedSens)) {    				// valve not yet closed
+		
+		if (current > HighPowerCurrentThreshold) {			// valve jam 
+			if(debug) {Serial.println("valve jammed closing"); }
+			
+			digitalWrite(ValveClosePin, LOW);   // current trip, stop opening.  
+			
+			if (++close_attempts > 5) {
+				delay(100);
+				StartOpening();
+			}
+			else {
+				digitalWrite(AlarmPin, 1);
+			}
+		}
+	}
+  else { 															// Valve closed, wait for current trip.
+		if(current > CurrentThreshold) {		// Current tripped: Valve fully closed
+			digitalWrite(ValveClosePin, LOW);	// Turn off valve motor. 
+			digitalWrite(JamLED, L_OFF);      // clear the error light, the valve is clear. 
+			state = Closed_state;							// enter the closed state
+			close_attempts = 0;								// reset close_attempts until next time we jam. 
+			}
     return;
   }
 }
@@ -493,7 +486,7 @@ void WaitingToClose() {
   }
 }
 
-void TryToClearValveJam() {
+/*void TryToClearValveJam() {
   static unsigned long HighPowerCurrentThreshold = 120;
   unsigned long pause_time = 0;
   unsigned long end_time = 4000UL; 
@@ -530,7 +523,8 @@ void TryToClearValveJam() {
 /////////////////////////////////////////////////////////////////////////////////////
 
   digitalWrite(ValveClosePin, HIGH);
-  for(int sampleSize; sampleSize< 20; sampleSize ++ ) {
+  //this seems to set "current" to the greater of the last two samples.  FIXME
+  for(int sampleSize; sampleSize< 20; sampleSize ++ ) {  
     oldCurrentSample = newCurrentSample;
     newCurrentSample = analogRead(CurrentSens);
     if(newCurrentSample<oldCurrentSample){
@@ -539,7 +533,8 @@ void TryToClearValveJam() {
     else {
       current = newCurrentSample;
     }
-  }
+  } 
+  
   if (current < HighPowerCurrentThreshold) {
 //  for(repetition=1; repetition <= 2; repetition++) {
     if(debug){Serial.println("in the jam loop");}
@@ -559,12 +554,12 @@ void TryToClearValveJam() {
     GoBackwards();
   }  
   return;  
-}   
+} */
 
 
 //  TODO: GoBkack/GoFowrward need a little refactoring to work as expected with the 
 //  calling function above. Currently works but issues are obvious. 
-void GoBackwards() {
+/*void GoBackwards() {
   static unsigned long backwards_end_time = 80000;
   unsigned long backwards_start_time = 0;
 
@@ -594,9 +589,9 @@ void GoBackwards() {
     } 
   }
   return;
-}
+}*/
    
-void GoForwards() {
+/*void GoForwards() {
   static unsigned long forwards_end_time = 80000;
   unsigned long forward_start_time = 0;
 
@@ -630,7 +625,7 @@ void GoForwards() {
   }
   GoBackwards();
 //  return;
-}
+} */
 
 
 
@@ -667,9 +662,9 @@ void StartWaitingToClose() {
   
 }
 
-void StartTryingToClearValveJam() {
+/* void StartTryingToClearValveJam() {
   if(debug) {Serial.println("TryToClearValve() function"); }
   state = TryToClear_valve;
   start_time = millis();  
 //  digitalWrite(ValveOpenPin, HIGH);  
-}
+} */
