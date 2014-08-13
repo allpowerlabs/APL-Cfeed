@@ -129,7 +129,7 @@ void setup() {
   // Read the proximity sensors to determine the state of the valve
   // and the appropriate action to take at power-up. 
   ////////////////////////////////////////////////////////////////////////////
-  // TODO: Noticing issues when the board is booted before the 12V valve main wile debug. Must press buttons a few times.
+
   if(debug) {Serial.println("Initial valve close check");}
    
   locked = EEPROM.read(locked_EE_address);    // read the stored locked state from last time we had power. 
@@ -147,13 +147,11 @@ void setup() {
   
   
   //////////////////////////////////////////////////////////////////////////////////
-  // To initialize main automatic operation user must press reset, to clear the 
-  // power up state. The reason behind this is that if the unit loses power and restarts
-  // it may be nice to know that the unit lost power, or if someone is working on it
-  // when it suddenly regains power having automatic mode start would be unfavourable.
-  // This behaviour can be easily modified. 
+  // The unit now wakes in the state it was in before it shut down with respect to 
+  // manual vs automatic or "locked" mode.  This is to prevent a brief power outage from 
+  // causing a stuck-open condition, but also to protect servicemen/servicewomen in the 
+  // event of a similar brief power interruption. 
   ///////////////////////////////////////////////////////////////////////////
-  
 }
 
 
@@ -161,12 +159,7 @@ void loop() {
   CheckState();
   CheckForBridging();
   CheckLocked();
-  
-  
-  
-  // send alarm for critical conditions.
-  //digitalWrite(AlarmPin, (JamLED || NoValveLED || NoFillLED));	
-  
+    
   CheckButtons();
 }
 
@@ -273,7 +266,9 @@ void CheckButtons() {
     
     
 /////////////////////////////////////////////////////////////////////////////////
-// Ready to start movin and shakin. and hopefully closing too
+// The following state handles any and every situation where the valve is moving 
+// towards the open position.  This includes manual operation, normal operation, 
+// and repeated attempts to close following a valve jam.  
 ///////////////////////////////////////////////////////////////////////////////
 void Opening() {
   duration = millis() - start_time;
@@ -344,21 +339,14 @@ void Open() {                    // this is a manual-open state.
   }
   digitalWrite(ValveOpenPin, LOW);  // stop the valve drive motor.
   
-
-//  else if (digitalRead(locked)) {
-//    digitalWrite(ValveOpenPin, LOW);  
-//  }
-//  state= Open_state;
- 
-//  if (digitalRead(OpenSens)) {
-//    state = Opening_state;  
-//  }
-//  if (digitalRead(ClosedSens)) {
-//    state = Closed_state;  
-//  }
 }
 
-void Closing() {
+///////////////////////////////////////////////////////////////
+// The following takes care of any and every condition where the 
+// valve is moving towards the closed condition.  This includes
+// repeatedly trying to close following a valve-jam. 
+///////////////////////////////////////////////////////////////
+void Closing() { 
   static byte close_attempts = 0;
   duration = millis() - start_time;
   current = analogRead(CurrentSens);
@@ -431,10 +419,8 @@ void Closed() {
 }
 
 
-
-
 /////////////////////////////////////////////////////////////////////////////
-// All the things other than opening and closing 
+// Just what happens when the fill-auger is running.  
 //////////////////////////////////////////////////////////////////////////
 void Filling() {
   duration = millis() - start_time;
