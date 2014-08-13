@@ -5,30 +5,13 @@ This code lives on an Arduino Uno that operates a prototype automatic valve for 
 level of solid fuel in the hopper of a power pallet. 
 */
 
-//#include "
-/* CFeed1 board pinout
-#define ValveOpenPin  A0
-#define ValveClosePin A2
-#define FillPin  A3
-
-#define JamLED     9
-#define NoValveLED 10
-#define NoFillLED  11
-#define BridgeLED  12
-#define LockedLED  13
-
-#define UpperSens  4
-#define LowerSens  5
-#define ValveBTN   6
-#define ClearBTN   7
-#define CurrentSens A1
-*/
+#include <EEPROM.h>
 
 //{ CFeed2 board pinout 
 #define ValveOpenPin	A0
 #define ValveClosePin	A2
-#define FillPin			A5
-#define AlarmPin		2
+#define FillPin       A5
+#define AlarmPin      2
 
 #define JamLED     11
 #define NoValveLED 13
@@ -56,26 +39,32 @@ level of solid fuel in the hopper of a power pallet.
 //}
 
 //{ Timings in milliseconds
-#define MaxMotorTime 22000
-#define InrushTime 5000
+#define MaxMotorTime 26000
+#define OpenInrushTime 150
+#define CloseInrushTime 50
 #define MaxFillTime  1200000  // 1200s = 20m
-#define WaitToCloseTime 500
+#define WaitToCloseTime 2000
 #define DebounceTime 50
 //}
 
 //{ Other #defines
 #define CurrentThreshold 70
+#define HighPowerCurrentThreshold 100
+#define L_ON 0
+#define L_OFF 1
+#define locked_EE_address 0
 //}
 
 //{ Variables
 int state = 0;
 int current = 0;
+long duration = 0;
 boolean locked  = 0;
+boolean last_locked = 0; 
 boolean bridged = 0;
 boolean debug = true;
 boolean valve_btn_press = 0;
 unsigned long start_time = 0;
-boolean firstStartup = true;
 //}
 
 
@@ -109,27 +98,27 @@ void setup() {
   // TODO: Flash firmware version number with the LEDs on startup. having units deployed
   // at different develoment cycles will potentially become confusing. 
   for (int i=0; i<3; i++) {  
-    digitalWrite(JamLED, HIGH);
+    digitalWrite(JamLED, L_ON);
     delay(100);
-    digitalWrite(JamLED, LOW);
+    digitalWrite(JamLED, L_OFF);
 
-    digitalWrite(NoValveLED, HIGH);
+    digitalWrite(NoValveLED, L_ON);
     delay(100);
-    digitalWrite(NoValveLED, LOW);
+    digitalWrite(NoValveLED, L_OFF);
  		
-    digitalWrite(NoFillLED, HIGH);
+    digitalWrite(NoFillLED, L_ON);
     delay(100);
-    digitalWrite(NoFillLED, LOW);
+    digitalWrite(NoFillLED, L_OFF);
 
-    digitalWrite(BridgeLED, HIGH);
+    digitalWrite(BridgeLED, L_ON);
     delay(100);
-    digitalWrite(BridgeLED, LOW);
+    digitalWrite(BridgeLED, L_OFF);
 	
-    digitalWrite(LockedLED, HIGH);	
+    digitalWrite(LockedLED, L_ON);	
     delay(100);
-    digitalWrite(LockedLED, LOW);		
+    digitalWrite(LockedLED, L_OFF);		
   }  
-  digitalWrite(NoValveLED, LOW);  // i'm not sure this line is necessary
+  digitalWrite(NoValveLED, L_OFF);  // i'm not sure this line is necessary
 
 
   // Make sure nothing is moving
@@ -140,82 +129,89 @@ void setup() {
   // Read the proximity sensors to determine the state of the valve
   // and the appropriate action to take at power-up. 
   ////////////////////////////////////////////////////////////////////////////
-  // TODO: Noticing issues when the board is booted before the 12V valve main wile debug. Must press buttons a few times.
+
   if(debug) {Serial.println("Initial valve close check");}
-  if(!digitalRead(OpenSens) || !digitalRead(ClosedSens)) {
-    state = Open_state;
-    locked = true;
-  }
-	
-  else if (digitalRead(ClosedSens) && digitalRead(OpenSens)) {
+   
+  locked = EEPROM.read(locked_EE_address);    // read the stored locked state from last time we had power. 
+  last_locked = locked;
+  digitalWrite(LockedLED, (!locked));         // update LED state
+
+  if (digitalRead(ClosedSens))    // if the closed sensor is lit, we're already closed, so wake in closed state.
     state = Closed_state;
-    locked = false;
-  }
+
+  else if(locked)                 // if the valve is not closed, but we were locked before, stay put (open state). 
+    state = Open_state;
 	
-  else {           // if you're in this state i don't know whats going on. just close it. 
-    locked = false;
+  else                            // if the valve isn't closed, and we weren't locked before power cycle, try to close. 
     StartClosing();
-  }
+  
   
   //////////////////////////////////////////////////////////////////////////////////
-  // To initialize main automatic operation user must press reset, to clear the 
-  // power up state. The reason behind this is that if the unit loses power and restarts
-  // it may be nice to know that the unit lost power, or if someone is working on it
-  // when it suddenly regains power having automatic mode start would be unfavourable.
-  // This behaviour can be easily modified. 
+  // The unit now wakes in the state it was in before it shut down with respect to 
+  // manual vs automatic or "locked" mode.  This is to prevent a brief power outage from 
+  // causing a stuck-open condition, but also to protect servicemen/servicewomen in the 
+  // event of a similar brief power interruption. 
   ///////////////////////////////////////////////////////////////////////////
-  
 }
 
 
 void loop() {
   CheckState();
   CheckForBridging();
-  digitalWrite(LockedLED, (!locked));
-  
-  // send alarm for critical conditions.
-  digitalWrite(AlarmPin, (JamLED || NoValveLED || NoFillLED));	
-  
+  CheckLocked();
+    
   CheckButtons();
 }
 
+void CheckLocked() {                    // This function updates the LED and EEPROM mirrors of the locked bit. 
+  if(locked == last_locked)             // only run if locked has changed. (to preserve EEPROM)
+    return;
+  last_locked = locked;                 // update last_locked to new value. 
+  digitalWrite(LockedLED, (!locked));   // update LED state
+  EEPROM.write(locked_EE_address, locked);     // store new value in EEPROM
+}
+
 void CheckState() {
-  
+static bool state_changed = 0; 
+static int last_state = 0;
+state_changed = (state != last_state);
+last_state = state;
+
   switch (state) {
     case Closed_state:
-    if(debug) {Serial.println("State:Closed");}
+    if(debug && state_changed) {Serial.println("State:Closed");}
     Closed();
     break;
     
     case Opening_state: 
-    if(debug) {Serial.println("State:Opening");}
+    if(debug && state_changed) {Serial.println("State:Opening");}
     Opening();    
     break;
     
     case Open_state:
-    if(debug) {Serial.println("State:Open");}
+    if(debug && state_changed) {Serial.println("State:Open");}
     Open();
     break;
     
     case Closing_state: 
-    if(debug) {Serial.println("State:Closing");}
+    if(debug && state_changed) {Serial.println("State:Closing");}
     Closing();
     break;
     
     case Filling_state: 
-    if(debug) {Serial.println("State:Filling");}
+    if(debug && state_changed) {Serial.println("State:Filling");}
     Filling();
     break;
     
     case WaitingToClose_state: 
-    if(debug) {Serial.println("State:WaitingToClose");}
+    if(debug && state_changed) {Serial.println("State:WaitingToClose");}
     WaitingToClose();
     break;
 
-    case TryToClear_valve: 
-    if(debug) {Serial.println("State:TryToClear");}
+    /* case TryToClear_valve: 
+    if(debug && state_changed) {Serial.println("State:TryToClear");}
     TryToClearValveJam();
-    break;
+    break; */
     
     default:
     state = 0;
@@ -225,14 +221,11 @@ void CheckState() {
 void CheckForBridging() {
   if (digitalRead(UpperSens) && !digitalRead(LowerSens)) {
     bridged = 1;
-    digitalWrite(BridgeLED, LOW);
-  }
-  else if (firstStartup == true) {
-    digitalWrite(BridgeLED, LOW);
+    digitalWrite(BridgeLED, L_ON);
   }
   else  {
     bridged = 0;
-    digitalWrite(BridgeLED, HIGH);
+    digitalWrite(BridgeLED, L_OFF);
   }
 }
 
@@ -245,12 +238,11 @@ void CheckButtons() {
   
   if (digitalRead(ClearBTN)) {
     locked = false;
-    firstStartup = false;
-    digitalWrite(NoValveLED, HIGH);
-    digitalWrite(NoFillLED, HIGH);
-    digitalWrite(LockedLED, HIGH);	
-    digitalWrite(JamLED, HIGH);
-    digitalWrite(BridgeLED, HIGH);
+    digitalWrite(NoValveLED, L_OFF);
+    digitalWrite(NoFillLED, L_OFF);
+    digitalWrite(LockedLED, L_OFF);	
+    digitalWrite(JamLED, L_OFF);
+    digitalWrite(BridgeLED, L_OFF);
   }
   
   // check Valve button.  double-latch: 1: debounce 2: require release before reset
@@ -274,79 +266,68 @@ void CheckButtons() {
     
     
 /////////////////////////////////////////////////////////////////////////////////
-// Ready to start movin and shakin. and hopefully closing too
+// The following state handles any and every situation where the valve is moving 
+// towards the open position.  This includes manual operation, normal operation, 
+// and repeated attempts to close following a valve jam.  
 ///////////////////////////////////////////////////////////////////////////////
 void Opening() {
-  static long duration = 0;
   duration = millis() - start_time;
-  current = analogRead(CurrentSens);
-  
-  if(debug) {Serial.println("In Opening() function"); }
-  if(debug) {Serial.println("Opening current: " + current); }
+  current = analogRead(CurrentSens); 
   
   if (valve_btn_press) {              // button pressed 
     // move to open state
     valve_btn_press = 0;
+		digitalWrite(ValveOpenPin, LOW);	// why was this removed?
     state = Open_state;
-//    Open();
-//    StartClosing();
     locked = 1;
     return;
   }
   
-//  if (duration < InrushTime) {        // inrush phase, keep going    
-//    return;
-//  }
+  if (duration < OpenInrushTime) {        // inrush phase, keep going    
+    return;
+  }
 
-//  if (duration > MaxMotorTime) { // Valve time-out
-//    if(debug) {Serial.println("Duration timeout. Duration = " + duration); }
-//    digitalWrite(NoValveLED, LOW);
-//    digitalWrite(ValveOpenPin, LOW);
-//    locked = true;
-//    StartClosing();
-//    state = Open_state;
-//    return;
-//  }
+  if (duration > MaxMotorTime) { // Valve time-out
+    if(debug) {Serial.println("Duration timeout. Duration = "); }
+    digitalWrite(NoValveLED, L_ON);
+    digitalWrite(ValveOpenPin, LOW);
+    locked = true;
+    StartClosing();
+    return;
+  }
     
   if (current > CurrentThreshold) {
-    
-    if(debug) {Serial.println("Valve jammed in CurrentThreshold loop..."); }			// valve jammed 
-    StartTryingToClearValveJam();    
-    if(debug) {Serial.println("[-] DOES THE PREVOIUS FUNCTION RETURN"); }      
+    if(debug) {Serial.println("Valve jammed in CurrentThreshold loop..."); }    // valve jammed 
 
-//    digitalWrite(ValveOpenPin, LOW);    // current trip, stop opening. 
-//    digitalWrite(JamLED, HIGH);					// light it up; we got a problem.
-//    locked = true;											// stop automatic operation.
-//    StartClosing();		
-    									// close it up if we can. 
+    digitalWrite(ValveOpenPin, LOW);    // current trip, stop opening. 
+    digitalWrite(JamLED, L_ON);         // light it up; we got a problem.
+    locked = true;                      // stop automatic operation.
+    StartClosing();                     // close it up if we can. 
   }
   else if (digitalRead(OpenSens) == LOW) { // reached fully open  
     digitalWrite(ValveOpenPin, LOW);  // stop the valve drive motor.
   
     if(debug) {Serial.println("Fully open state detected..."); }
   
-    digitalWrite(JamLED, HIGH);       // clear the error light, the valve is clear. 		
+    digitalWrite(JamLED, L_OFF);       // clear the error light, the valve is clear. 		
     if (locked) {                     // this process began from a button-press
-      Open();
+      state = Open_state;
     }
     else {                            // normal operating conditions
       StartFilling();
     }
-    return;
-  }	
-//  else {
-//    state = Opening_state;
-//  }	
-
+  }
 }
 
 void Open() {                    // this is a manual-open state.
-  if(debug) {Serial.println("We are now in the Open() function"); }
+
+  digitalWrite(ValveClosePin, LOW);     // just-in-cases.  There may be tired people working on this. 
+  digitalWrite(ValveOpenPin, LOW);      
+  
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = 1;
-//    state = WaitingToClose_state;
-    StartWaitingToClose();
+    StartClosing();
     return;
   }
   if (digitalRead(OpenSens) == LOW) { // reached fully open  
@@ -358,109 +339,92 @@ void Open() {                    // this is a manual-open state.
   }
   digitalWrite(ValveOpenPin, LOW);  // stop the valve drive motor.
   
-
-//  else if (digitalRead(locked)) {
-//    digitalWrite(ValveOpenPin, LOW);  
-//  }
-//  state= Open_state;
- 
-//  if (digitalRead(OpenSens)) {
-//    state = Opening_state;  
-//  }
-//  if (digitalRead(ClosedSens)) {
-//    state = Closed_state;  
-//  }
 }
 
-void Closing() {
-  static long duration = 0;
+///////////////////////////////////////////////////////////////
+// The following takes care of any and every condition where the 
+// valve is moving towards the closed condition.  This includes
+// repeatedly trying to close following a valve-jam. 
+///////////////////////////////////////////////////////////////
+void Closing() { 
+  static byte close_attempts = 0;
   duration = millis() - start_time;
   current = analogRead(CurrentSens);
   
-  if(debug) {Serial.println("In Closing() function"); }
-  
   if (valve_btn_press) {		// button press. 
     valve_btn_press = 0;
-//    Closed();
+    digitalWrite(ValveClosePin, LOW);
     state = Closed_state;
     locked = 1;
     return;
   }
 
-//////////////////////////////////////////////////////////////////////////////////////
-//  Needed to reduce variables in debug so commented out these segments
-//  TODO: Return these lines for timing. Open/Close time are 20 seconds travel time, 
-//  add some to that value to indicate there was an issues with the drive system. 
-//////////////////////////////////////////////////////////////////////////////////////
-//  if (duration < InrushTime) {					// inrush phase, keep going
-//    return;
-//  }
+  if (duration < CloseInrushTime) {					// inrush phase, keep going
+    return;
+  }
 	
-//  if (duration > MaxMotorTime) { 	// valve time-out
-//      digitalWrite(NoValveLED, LOW);
-//      digitalWrite(ValveClosePin, LOW);
-//      locked = true;
-//      state = Open_state;
-//      return;
-//  }
-//  if (current > CurrentThreshold && digitalRead(OpenSens)) {			// collision (current trip)    
-//    StartTryingToClearValveJam();    
-//    state = Closing_state;
-//  }    
-////////////////////////////////////////////////////////////////////////////////////  
-  if (current > CurrentThreshold) {			// collision (current trip)    
-    if(debug) {Serial.println("Current greater than CurrentThreshold within Closing() function"); }
-    digitalWrite(ValveClosePin, LOW);   // current trip, stop opening.    
-    if (!digitalRead(ClosedSens)) {    				// valve jammed
-      StartTryingToClearValveJam();    
-    if(debug) {Serial.println("[-] DOES THE PREVOIUS FUNCTION RETURN"); }      
-      if (!digitalRead(JamLED)) {
-        StartWaitingToClose();
-      }
-      else {
-        return;
-      }      
-    }    
-    else if (locked) {                    // reached fully open, but close began with a button-press
-      digitalWrite(JamLED, HIGH);         // clear the error light, the valve is clear. 
-      state = Closed_state;
-    }
-    else {                                // Timing right, automatic operation.
-      digitalWrite(JamLED, HIGH);         // clear the error light, the valve is clear. 
-      state = Closed_state;
-    }
+  if (duration > MaxMotorTime) { 	// valve time-out
+      digitalWrite(NoValveLED, L_ON);
+      digitalWrite(ValveClosePin, LOW);
+      locked = true;
+      state = Open_state;
+      return;
+  }
+  
+	if (!digitalRead(ClosedSens)) {    				// valve not yet closed
+		
+		if (current > HighPowerCurrentThreshold) {			// valve jam 
+			if(debug) {Serial.println("valve jammed closing"); }
+			
+			digitalWrite(ValveClosePin, LOW);   // current trip, stop opening.  
+      digitalWrite(JamLED, L_ON);
+			
+			if (close_attempts < 5) {
+        close_attempts++;
+				StartOpening();
+			}
+			else {
+        if(debug) Serial.println("no close attempt");
+				digitalWrite(AlarmPin, 1);
+        state = Open_state;
+        
+			}
+		}
+	}
+  else { 															// Valve closed, wait for current trip.
+		if(current > CurrentThreshold) {		// Current tripped: Valve fully closed
+			digitalWrite(ValveClosePin, LOW);	// Turn off valve motor. 
+			digitalWrite(JamLED, L_OFF);      // clear the error light, the valve is clear. 
+			state = Closed_state;							// enter the closed state
+			close_attempts = 0;								// reset close_attempts until next time we jam. 
+			}
     return;
   }
 }
 
 void Closed() {
+
+  digitalWrite(ValveClosePin, LOW);     // just-in-cases.  There may be tired people working on this. 
+  digitalWrite(ValveOpenPin, LOW);
+  
   if (!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens)) {
-    StartFilling();
+    StartOpening();       // not filling. we have to open before we fill. 
   }
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = 1;
     StartOpening();
   }
-  else if (locked) {
-    digitalWrite(ValveClosePin, LOW);  // stop the valve drive motor.
-    state = Closed_state;
-  }
-  else {
-    digitalWrite(ValveClosePin, LOW);  // stop the valve drive motor.    
-  }
+ 
 }
 
 
-
-
 /////////////////////////////////////////////////////////////////////////////
-// All the things other than opening and closing 
+// Just what happens when the fill-auger is running.  
 //////////////////////////////////////////////////////////////////////////
 void Filling() {
-  if(debug) {Serial.println("Now in the Filling() function"); }
-  static long duration = 0;
   duration = millis() - start_time;
+  digitalWrite(ValveOpenPin, LOW);    // Just in case of bleary-eyed coders. 
     
   if (valve_btn_press) {
     // move to open state
@@ -470,35 +434,21 @@ void Filling() {
     digitalWrite(FillPin, LOW);
     return;
   }
-  if (digitalRead(UpperSens) == LOW) {
-    if(digitalRead(LowerSens) == LOW) {
-      if (digitalRead(OpenSens) == HIGH) { // reached fully open  
-        digitalWrite(ValveOpenPin, HIGH);  // stop the valve drive motor.
-      }
-      else {
-        digitalWrite(ValveOpenPin, LOW);  
-      }
-    }
-    else {
-     return; 
-    }
-  }   
-  if (digitalRead(UpperSens) && digitalRead(LowerSens)) {
-    digitalWrite(FillPin, LOW);    // current trip, stop filling. 
+
+  if (digitalRead(UpperSens)) {     // we only require the upper sensor to be high because of the possibility of bridging. 
+    digitalWrite(FillPin, LOW);     // Sensors read full, stop filling. 
     StartWaitingToClose();
   }
   
   else if (duration > MaxFillTime) {
     digitalWrite(FillPin, LOW);
     locked = true;
-    digitalWrite(NoFillLED, LOW);
+    digitalWrite(NoFillLED, L_ON);
     StartWaitingToClose();
   }
 }
 
 void WaitingToClose() {
-  if(debug) {Serial.println("Now WaitingToClose() function"); }
-  static long duration = 0;
   duration = millis() - start_time;
   
   if (valve_btn_press) {
@@ -513,8 +463,7 @@ void WaitingToClose() {
   }
 }
 
-void TryToClearValveJam() {
-  static unsigned long HighPowerCurrentThreshold = 120;
+/*void TryToClearValveJam() {
   unsigned long pause_time = 0;
   unsigned long end_time = 4000UL; 
   int repetition = 1;
@@ -550,7 +499,8 @@ void TryToClearValveJam() {
 /////////////////////////////////////////////////////////////////////////////////////
 
   digitalWrite(ValveClosePin, HIGH);
-  for(int sampleSize; sampleSize< 20; sampleSize ++ ) {
+  //this seems to set "current" to the greater of the last two samples.  FIXME
+  for(int sampleSize; sampleSize< 20; sampleSize ++ ) {  
     oldCurrentSample = newCurrentSample;
     newCurrentSample = analogRead(CurrentSens);
     if(newCurrentSample<oldCurrentSample){
@@ -559,7 +509,8 @@ void TryToClearValveJam() {
     else {
       current = newCurrentSample;
     }
-  }
+  } 
+  
   if (current < HighPowerCurrentThreshold) {
 //  for(repetition=1; repetition <= 2; repetition++) {
     if(debug){Serial.println("in the jam loop");}
@@ -579,10 +530,11 @@ void TryToClearValveJam() {
     GoBackwards();
   }  
   return;  
-}   
+} */
 
 ///////////////////////////////////////////////////////////////////////
 //  TODO: GoBkack/GoFowrward need a little refactoring to work as expected with the 
+<<<<<<< HEAD:cfeed2014730/cfeed2014730.ino
 //  calling function above. Currently works but issues are obvious.
 //
 //  NEZ: this forward reverse should be based on the surpassing the current limit, so if the current>CurrentThreshold, 
@@ -592,6 +544,10 @@ void TryToClearValveJam() {
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GoBackwards() {
+=======
+//  calling function above. Currently works but issues are obvious. 
+/*void GoBackwards() {
+>>>>>>> FETCH_HEAD:cfeed/cfeed.ino
   static unsigned long backwards_end_time = 80000;
   unsigned long backwards_start_time = 0;
 
@@ -621,9 +577,9 @@ void GoBackwards() {
     } 
   }
   return;
-}
+}*/
    
-void GoForwards() {
+/*void GoForwards() {
   static unsigned long forwards_end_time = 80000;
   unsigned long forward_start_time = 0;
 
@@ -657,7 +613,7 @@ void GoForwards() {
   }
   GoBackwards();
 //  return;
-}
+} */
 
 
 
@@ -669,7 +625,6 @@ void StartOpening() {
   state = Opening_state;
   start_time = millis();  
   digitalWrite(ValveOpenPin, HIGH);
-  delay(500);
 }
 
 void StartClosing() {
@@ -694,9 +649,9 @@ void StartWaitingToClose() {
   
 }
 
-void StartTryingToClearValveJam() {
+/* void StartTryingToClearValveJam() {
   if(debug) {Serial.println("TryToClearValve() function"); }
   state = TryToClear_valve;
   start_time = millis();  
 //  digitalWrite(ValveOpenPin, HIGH);  
-}
+} */
