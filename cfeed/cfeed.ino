@@ -325,6 +325,10 @@ void Opening() {
 }
 
 void Open() {                    // this is a manual-open state.
+
+  digitalWrite(ValveClosePin, LOW);     // just-in-cases.  There may be tired people working on this. 
+  digitalWrite(ValveOpenPin, LOW);      
+  
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = 1;
@@ -361,7 +365,7 @@ void Closing() {
   
   if (valve_btn_press) {		// button press. 
     valve_btn_press = 0;
-//    Closed();
+    digitalWrite(ValveClosePin, LOW);
     state = Closed_state;
     locked = 1;
     return;
@@ -411,21 +415,19 @@ void Closing() {
 }
 
 void Closed() {
+
+  digitalWrite(ValveClosePin, LOW);     // just-in-cases.  There may be tired people working on this. 
+  digitalWrite(ValveOpenPin, LOW);
+  
   if (!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens)) {
-    StartFilling();
+    StartOpening();       // not filling. we have to open before we fill. 
   }
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = 1;
     StartOpening();
   }
-  else if (locked) {
-    digitalWrite(ValveClosePin, LOW);  // stop the valve drive motor.
-    state = Closed_state;
-  }
-  else {
-    digitalWrite(ValveClosePin, LOW);  // stop the valve drive motor.    
-  }
+ 
 }
 
 
