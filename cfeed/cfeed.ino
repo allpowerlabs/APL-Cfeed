@@ -10,8 +10,8 @@ level of solid fuel in the hopper of a power pallet.
 //{ CFeed2 board pinout 
 #define ValveOpenPin	A0
 #define ValveClosePin	A2
-#define FillPin			A5
-#define AlarmPin		2
+#define FillPin       A5
+#define AlarmPin      2
 
 #define JamLED     11
 #define NoValveLED 13
@@ -39,7 +39,7 @@ level of solid fuel in the hopper of a power pallet.
 //}
 
 //{ Timings in milliseconds
-#define MaxMotorTime 22000
+#define MaxMotorTime 26000
 #define InrushTime 50
 #define MaxFillTime  1200000  // 1200s = 20m
 #define WaitToCloseTime 500
@@ -280,7 +280,7 @@ void Opening() {
   }
 
   if (duration > MaxMotorTime) { // Valve time-out
-    if(debug) {Serial.println("Duration timeout. Duration = " + duration); }
+    if(debug) {Serial.println("Duration timeout. Duration = "); }
     digitalWrite(NoValveLED, L_ON);
     digitalWrite(ValveOpenPin, LOW);
     locked = true;
@@ -289,12 +289,12 @@ void Opening() {
   }
     
   if (current > CurrentThreshold) {
-    if(debug) {Serial.println("Valve jammed in CurrentThreshold loop..."); }			// valve jammed 
+    if(debug) {Serial.println("Valve jammed in CurrentThreshold loop..."); }    // valve jammed 
 
     digitalWrite(ValveOpenPin, LOW);    // current trip, stop opening. 
-    digitalWrite(JamLED, L_ON);					// light it up; we got a problem.
-    locked = true;											// stop automatic operation.
-    StartClosing();    									// close it up if we can. 
+    digitalWrite(JamLED, L_ON);         // light it up; we got a problem.
+    locked = true;                      // stop automatic operation.
+    StartClosing();                     // close it up if we can. 
   }
   else if (digitalRead(OpenSens) == LOW) { // reached fully open  
     digitalWrite(ValveOpenPin, LOW);  // stop the valve drive motor.
@@ -344,7 +344,7 @@ void Open() {                    // this is a manual-open state.
 
 void Closing() {
   static long duration = 0;
-	static byte close_attempts = 0;
+  static byte close_attempts = 0;
   duration = millis() - start_time;
   current = analogRead(CurrentSens);
   
