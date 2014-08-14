@@ -48,8 +48,8 @@ level of solid fuel in the hopper of a power pallet.
 //}
 
 //{ Other #defines
-#define CurrentThreshold 70
-#define HighPowerCurrentThreshold 100
+#define CurrentThreshold 150
+#define HighPowerCurrentThreshold 250
 #define L_ON 0
 #define L_OFF 1
 #define locked_EE_address 0
@@ -68,19 +68,17 @@ unsigned long start_time = 0;
 //}
 
 
-
-
 void setup() {
   Serial.begin(57600);
   pinMode(ValveOpenPin, OUTPUT);  
   pinMode(ValveClosePin, OUTPUT);  
   pinMode(FillPin, OUTPUT);  
   
-  pinMode(JamLED, OUTPUT);   // 
-  pinMode(NoValveLED, OUTPUT);  // 
-  pinMode(NoFillLED, OUTPUT);  // 
-  pinMode(BridgeLED, OUTPUT);  // 
-  pinMode(LockedLED, OUTPUT);  // 
+  pinMode(JamLED, OUTPUT);   
+  pinMode(NoValveLED, OUTPUT); 
+  pinMode(NoFillLED, OUTPUT);  
+  pinMode(BridgeLED, OUTPUT); 
+  pinMode(LockedLED, OUTPUT);  
   
   pinMode(UpperSens, INPUT);  
   pinMode(LowerSens, INPUT); 
