@@ -79,7 +79,13 @@ void setup() {
   pinMode(NoFillLED, OUTPUT);  
   pinMode(BridgeLED, OUTPUT); 
   pinMode(LockedLED, OUTPUT);  
-  
+ 
+ //  getting this error: 
+ //  cfeed:91: error: expected constructor, destructor, or type conversion before 'void'
+ //  which is highlighting in yellow the above line, then this error"
+ //  cfeed:535: error: expected unqualified-id before '<<' token
+ //  when trying to upload or verify
+ 
   pinMode(UpperSens, INPUT);  
   pinMode(LowerSens, INPUT); 
   pinMode(OpenSens, INPUT);
