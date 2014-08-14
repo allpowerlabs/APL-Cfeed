@@ -1,0 +1,6 @@
+﻿Revert "Merge branch 'master' of https://github.com/mthielvoldt/APL-Cfeed"
+
+This reverts commit 935a06f67a401c4598bf01782848556c1770a6e7, reversing
+changes made to 28ed940f589adf3368e464fbe3de35ad1e9c668d.
+
+This was done with "$ git revert -m 2 935a06"
