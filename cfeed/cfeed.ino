@@ -40,15 +40,15 @@ level of solid fuel in the hopper of a power pallet.
 
 //{ Timings in milliseconds
 #define MaxMotorTime 26000
-#define OpenInrushTime 150
-#define CloseInrushTime 50
-#define MaxFillTime  1200000  // 1200s = 20m
+#define OpenInrushTime 500
+#define CloseInrushTime 500
+#define MaxFillTime  120000  // 1200s = 20m
 #define WaitToCloseTime 2000
 #define DebounceTime 50
 //}
 
 //{ Other #defines
-#define CurrentThreshold 150
+#define CurrentThreshold 250
 #define HighPowerCurrentThreshold 250
 #define L_ON 0
 #define L_OFF 1
@@ -80,11 +80,6 @@ void setup() {
   pinMode(BridgeLED, OUTPUT); 
   pinMode(LockedLED, OUTPUT);  
  
- //  getting this error: 
- //  cfeed:91: error: expected constructor, destructor, or type conversion before 'void'
- //  which is highlighting in yellow the above line, then this error"
- //  cfeed:535: error: expected unqualified-id before '<<' token
- //  when trying to upload or verify
  
   pinMode(UpperSens, INPUT);  
   pinMode(LowerSens, INPUT); 
