@@ -406,7 +406,7 @@ void Closed() {
   digitalWrite(ValveClosePin, LOW);     // just-in-cases.  There may be tired people working on this. 
   digitalWrite(ValveOpenPin, LOW);
   
-  if (!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens)) {
+  if (!locked && digitalRead(UpperSens)) {  //(!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens))
     StartOpening();       // not filling. we have to open before we fill. 
   }
   if (valve_btn_press) {
@@ -434,7 +434,7 @@ void Filling() {
     return;
   }
 
-  if (digitalRead(UpperSens)) {     // we only require the upper sensor to be high because of the possibility of bridging. 
+  if (!digitalRead(UpperSens)) {     // we only require the upper sensor to see fuel because of the possibility of bridging. 
     digitalWrite(FillPin, LOW);     // Sensors read full, stop filling. 
     StartWaitingToClose();
   }
