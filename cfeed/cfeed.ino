@@ -156,7 +156,7 @@ void setup() {
 
 void loop() {
   CheckState();
-  CheckForBridging();
+// CheckForBridging();        //not using bridging error with pump in latch sensor
   CheckLocked();
     
   CheckButtons();
@@ -216,16 +216,19 @@ last_state = state;
     state = 0;
   }
 }
-
-void CheckForBridging() {
-  if (digitalRead(UpperSens) && !digitalRead(LowerSens)) {
-    bridged = 1;
-    digitalWrite(BridgeLED, L_ON);
-  }
-  else  {
-    bridged = 0;
-    digitalWrite(BridgeLED, L_OFF);
-  }
+////////////////////////////////////////
+//This pump-in latch sensor is not able to detect a bridge 
+//so this error stae is currently commented out
+///////////////////////////////////////
+//void CheckForBridging() {
+//if (digitalRead(UpperSens) && !digitalRead(LowerSens)) {
+//    bridged = 1;
+//    digitalWrite(BridgeLED, L_ON);
+//  }
+//  else  {
+//    bridged = 0;
+//    digitalWrite(BridgeLED, L_OFF);
+//  }
 }
 
 void CheckButtons() {
