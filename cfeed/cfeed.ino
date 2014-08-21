@@ -26,6 +26,14 @@ level of solid fuel in the hopper of a power pallet.
 #define ValveBTN   10
 #define ClearBTN   9
 #define CurrentSens A1
+
+///////////////////////////////
+// defining Fuel3 to use BridgeLED to indicate when the Right Ultrasonic sensor goes high
+// defining Fuel4 to use NoValveLED to indicate when the Left Ultrasonic sensorts goes high
+/////////////////////////////////
+
+#define RtSens  4
+#define LftSens 3
 //}
 
 //{ State Enumeration
@@ -86,7 +94,12 @@ void setup() {
   pinMode(OpenSens, INPUT);
   pinMode(ClosedSens, INPUT);
   pinMode(ValveBTN, INPUT);  
-  pinMode(ClearBTN, INPUT);  
+  pinMode(ClearBTN, INPUT); 
+ 
+ //adding fuel 3 and 4
+
+  pinMode(RtSens, INPUT);  
+  pinMode(LftSens, INPUT);
 	
   //////////////////////////////////////////////////////////////////////////////////////
   // Do a nice little light show to indicate that setup is running for
@@ -156,7 +169,7 @@ void setup() {
 
 void loop() {
   CheckState();
-// CheckForBridging();        //not using bridging error with pump in latch sensor
+ // CheckForBridging();        //using to check top sensor states
   CheckLocked();
     
   CheckButtons();
@@ -217,19 +230,25 @@ last_state = state;
   }
 }
 ////////////////////////////////////////
-//This pump-in latch sensor is not able to detect a bridge 
-//so this error stae is currently commented out
+//Hope this will indicate states of top ultrasonic sensors
+//RtSens to the BridgeLED, and Lftsens to the NoValve LED
 ///////////////////////////////////////
-//void CheckForBridging() {
-//if (digitalRead(UpperSens) && !digitalRead(LowerSens)) {
-//    bridged = 1;
-//    digitalWrite(BridgeLED, L_ON);
-//  }
-//  else  {
-//    bridged = 0;
-//    digitalWrite(BridgeLED, L_OFF);
-//  }
+
+void CheckRtTopSensor()  {  //this based on the Check Bridging from before, but why the boolean bridging?
+if (digitalRead(RtSens))   //assume this means RtSens=High, therefore sensor active 
+  digitalWrite(BridgeLED, L_ON);
+   else if (digitalRead(RtSens) == LOW)  //Sensor shutting off  
+    digitalWrite(BridgeLED, L_OFF);       //Turn off the LED
 }
+  
+void CheckLftTopSensor() {
+if (digitalRead(LftSens)) 
+  digitalWrite(NoValveLED, L_ON);
+   else if (digitalRead(LftSens) == LOW)  //Sensor shutting off  
+    digitalWrite(NoValveLED, L_OFF);
+  
+}
+////???don't really understand the functions of curly braces, indicating the argumentns for a function??
 
 void CheckButtons() {
   
