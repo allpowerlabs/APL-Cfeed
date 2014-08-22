@@ -235,18 +235,22 @@ last_state = state;
 ///////////////////////////////////////
 
 void CheckRtTopSensor()  {  //this based on the Check Bridging from before, but why the boolean bridging?
-if (digitalRead(RtSens))   //assume this means RtSens=High, therefore sensor active 
+if (digitalRead(RtSens))  { //assume this means RtSens=High, therefore sensor active 
   digitalWrite(BridgeLED, L_ON);
-   else if (digitalRead(RtSens) == LOW)  //Sensor shutting off  
-    digitalWrite(BridgeLED, L_OFF);       //Turn off the LED
 }
+   else if (digitalRead(RtSens) == LOW) { //Sensor shutting off  
+    digitalWrite(BridgeLED, L_OFF);       //Turn off the LED
+   }
+}
+
   
 void CheckLftTopSensor() {
-if (digitalRead(LftSens)) 
+if (digitalRead(LftSens)) {
   digitalWrite(NoValveLED, L_ON);
-   else if (digitalRead(LftSens) == LOW)  //Sensor shutting off  
+}
+   else if (digitalRead(LftSens) == LOW){  //Sensor shutting off  
     digitalWrite(NoValveLED, L_OFF);
-  
+   }
 }
 ////???don't really understand the functions of curly braces, indicating the argumentns for a function??
 
