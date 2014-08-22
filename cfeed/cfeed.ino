@@ -50,14 +50,14 @@ level of solid fuel in the hopper of a power pallet.
 #define MaxMotorTime 26000
 #define OpenInrushTime 500
 #define CloseInrushTime 500
-#define MaxFillTime  120000  // 1200s = 20m
+#define MaxFillTime  240000  // 4 minutes
 #define WaitToCloseTime 2000
 #define DebounceTime 50
 //}
 
 //{ Other #defines
-#define CurrentThreshold 250
-#define HighPowerCurrentThreshold 250
+#define CurrentThreshold 80  //should be ~5A
+#define HighPowerCurrentThreshold 200  // should  be ~12A 
 #define L_ON 0
 #define L_OFF 1
 #define locked_EE_address 0
@@ -235,7 +235,7 @@ last_state = state;
 ///////////////////////////////////////
 
 void CheckRtTopSensor()  {  //this based on the Check Bridging from before, but why the boolean bridging?
-if (digitalRead(RtSens))  { //assume this means RtSens=High, therefore sensor active 
+if (digitalRead(RtSens) == HIGH)  { //sensor on
   digitalWrite(BridgeLED, L_ON);
 }
    else if (digitalRead(RtSens) == LOW) { //Sensor shutting off  
@@ -245,14 +245,14 @@ if (digitalRead(RtSens))  { //assume this means RtSens=High, therefore sensor ac
 
   
 void CheckLftTopSensor() {
-if (digitalRead(LftSens)) {
+if (digitalRead(LftSens) == HIGH) {
   digitalWrite(NoValveLED, L_ON);
 }
    else if (digitalRead(LftSens) == LOW){  //Sensor shutting off  
     digitalWrite(NoValveLED, L_OFF);
    }
 }
-////???don't really understand the functions of curly braces, indicating the argumentns for a function??
+////???don't really understand the functions of curly braces, indicating the arguments for a function??
 
 void CheckButtons() {
   
