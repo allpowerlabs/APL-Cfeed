@@ -1,6 +1,5 @@
  /*
 APL Continuous Feed Controller
-
 This code lives on an Arduino Uno that operates a prototype automatic valve for maintaining a constant
 level of solid fuel in the hopper of a power pallet. 
 */
@@ -56,7 +55,11 @@ level of solid fuel in the hopper of a power pallet.
 //}
 
 //{ Other #defines
+<<<<<<< HEAD
 #define CurrentThreshold 120           // was 80 which should be ~5A, changed to 120
+=======
+#define CurrentThreshold 180           // was 80 which should be ~5A, changed to 120. Changed to 180 by SS (1/20/2017)
+>>>>>>> master
 #define HighPowerCurrentThreshold 200  // should  be ~12A 
 #define L_ON 0
 #define L_OFF 1
@@ -252,7 +255,7 @@ if (digitalRead(LftSens) == HIGH) {
     digitalWrite(NoValveLED, L_OFF);
    }
 }
-////???don't really understand the functions of curly braces, indicating the arguments for a function??
+
 
 void CheckButtons() {
   
@@ -399,7 +402,11 @@ void Closing() {
   if (!digitalRead(ClosedSens)) {                // valve not yet closed
 		
     if (current > HighPowerCurrentThreshold) {   // valve jam 
+<<<<<<< HEAD
       if(debug) {Serial.println("valve jammed closing"); }
+=======
+      if(debug) {Serial.println("valve jammed closing");
+>>>>>>> master
       digitalWrite(ValveClosePin, LOW);          // current trip, stop opening.  
       digitalWrite(JamLED, L_ON);
 			
@@ -416,7 +423,11 @@ void Closing() {
   }
   else { 					// Valve closed, wait for current trip.
     if(current > CurrentThreshold) {		// Current tripped: Valve fully closed
+<<<<<<< HEAD
       digitalWrite(ValveClosePin, LOW);	        // Turn off valve motor. 
+=======
+    digitalWrite(ValveClosePin, LOW);	        // Turn off valve motor. 
+>>>>>>> master
       digitalWrite(JamLED, L_OFF);              // clear the error light, the valve is clear. 
       state = Closed_state;			// enter the closed state
       close_attempts = 0;			// reset close_attempts until next time we jam. 
@@ -428,11 +439,19 @@ void Closing() {
 }
 
 void Closed() {
+<<<<<<< HEAD
 
   digitalWrite(ValveClosePin, LOW);             // just-in-cases.  There may be tired people working on this. 
   digitalWrite(ValveOpenPin, LOW);
   
   if (!locked && digitalRead(UpperSens) && digitalRead(LowerSens)) {          //(!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens))
+=======
+ 
+  digitalWrite(ValveClosePin, LOW);             // just-in-cases.  There may be tired people working on this. 
+  digitalWrite(ValveOpenPin, LOW);
+  
+  if (!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens)) {          //(!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens)) 
+>>>>>>> master
     StartOpening();                             // not filling. we have to open before we fill. 
   }
   if (valve_btn_press) {
@@ -460,7 +479,7 @@ void Filling() {
     return;
   }
 
-  if (!digitalRead(UpperSens)) {     // we only require the upper sensor to see fuel because of the possibility of bridging. 
+  if (digitalRead(UpperSens)) {     // we only require the upper sensor to see fuel because of the possibility of bridging. 
     digitalWrite(FillPin, LOW);     // Sensors read full, stop filling. 
     StartWaitingToClose();
   }
@@ -495,7 +514,6 @@ void WaitingToClose() {
   int oldCurrentSample = 0;
   int newCurrentSample = 0;
   current = analogRead(CurrentSens);
-
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = true;
@@ -515,14 +533,12 @@ void WaitingToClose() {
     
     delay(3000);
   }
-
 //////////////////////////////////////////////////////////////////////////////////////
 //  TODO: Add some intellegence arround how many times the valve attempts to clear
 //  itself before throwing a more serious alarm and stopping in place. Some tuning in 
 //  hardware and or firmware may be necessary to prevent false positives if the tracks
 //  become gummed up. 
 /////////////////////////////////////////////////////////////////////////////////////
-
   digitalWrite(ValveClosePin, HIGH);
   //this seems to set "current" to the greater of the last two samples.  FIXME
   for(int sampleSize; sampleSize< 20; sampleSize ++ ) {  
@@ -563,15 +579,12 @@ void WaitingToClose() {
 /*void GoBackwards() {
   static unsigned long backwards_end_time = 80000;
   unsigned long backwards_start_time = 0;
-
   if(debug){Serial.println("GoBackwards .... Current:");}
       
   digitalWrite(ValveOpenPin, HIGH);       
-
   current = analogRead(CurrentSens);  
   if(debug){Serial.println(current);}
   backwards_start_time = millis();
-
   for (int j=0; j<2000; j++) {
     Serial.println(j);
 //  while(backwards_start_time < backwards_end_time) {
@@ -595,11 +608,9 @@ void WaitingToClose() {
 /*void GoForwards() {
   static unsigned long forwards_end_time = 80000;
   unsigned long forward_start_time = 0;
-
   if(debug){Serial.println("GoForwards .... Current:");}
      
   digitalWrite(ValveClosePin, HIGH);       
-
   current = analogRead(CurrentSens);  
   if(debug){Serial.println(current);}
   forward_start_time = millis();
@@ -607,7 +618,6 @@ void WaitingToClose() {
   for (int i=0; i<2000; i++) {
 //  while(forward_start_time < forwards_end_time) {
     Serial.println(i);
-
     if (valve_btn_press) {
       valve_btn_press = 0;
       locked = true;
@@ -643,9 +653,10 @@ void StartOpening() {
 void StartClosing() {
   if(debug) {Serial.println("StartClosing() function"); }
   state = Closing_state;
-  start_time = millis();  
+  start_time = millis(); 
   digitalWrite(ValveClosePin, HIGH);
   delay(500);
+
 }
 
 void StartFilling() {
@@ -653,6 +664,8 @@ void StartFilling() {
   state = Filling_state;
   start_time = millis();
   digitalWrite(FillPin, HIGH);
+  Serial.println("Relay");
+  Serial.println(FillPin);
 }
 
 void StartWaitingToClose() {
