@@ -427,7 +427,6 @@ void Closing() {
 }
 
 void Closed() {
-
   digitalWrite(ValveClosePin, LOW);             // just-in-cases.  There may be tired people working on this. 
   digitalWrite(ValveOpenPin, LOW);
   
