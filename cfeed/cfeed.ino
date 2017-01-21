@@ -55,11 +55,7 @@ level of solid fuel in the hopper of a power pallet.
 //}
 
 //{ Other #defines
-<<<<<<< HEAD
-#define CurrentThreshold 120           // was 80 which should be ~5A, changed to 120
-=======
 #define CurrentThreshold 180           // was 80 which should be ~5A, changed to 120. Changed to 180 by SS (1/20/2017)
->>>>>>> master
 #define HighPowerCurrentThreshold 200  // should  be ~12A 
 #define L_ON 0
 #define L_OFF 1
@@ -402,11 +398,7 @@ void Closing() {
   if (!digitalRead(ClosedSens)) {                // valve not yet closed
 		
     if (current > HighPowerCurrentThreshold) {   // valve jam 
-<<<<<<< HEAD
-      if(debug) {Serial.println("valve jammed closing"); }
-=======
       if(debug) {Serial.println("valve jammed closing");
->>>>>>> master
       digitalWrite(ValveClosePin, LOW);          // current trip, stop opening.  
       digitalWrite(JamLED, L_ON);
 			
@@ -423,11 +415,7 @@ void Closing() {
   }
   else { 					// Valve closed, wait for current trip.
     if(current > CurrentThreshold) {		// Current tripped: Valve fully closed
-<<<<<<< HEAD
-      digitalWrite(ValveClosePin, LOW);	        // Turn off valve motor. 
-=======
     digitalWrite(ValveClosePin, LOW);	        // Turn off valve motor. 
->>>>>>> master
       digitalWrite(JamLED, L_OFF);              // clear the error light, the valve is clear. 
       state = Closed_state;			// enter the closed state
       close_attempts = 0;			// reset close_attempts until next time we jam. 
@@ -439,19 +427,11 @@ void Closing() {
 }
 
 void Closed() {
-<<<<<<< HEAD
 
   digitalWrite(ValveClosePin, LOW);             // just-in-cases.  There may be tired people working on this. 
   digitalWrite(ValveOpenPin, LOW);
   
-  if (!locked && digitalRead(UpperSens) && digitalRead(LowerSens)) {          //(!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens))
-=======
- 
-  digitalWrite(ValveClosePin, LOW);             // just-in-cases.  There may be tired people working on this. 
-  digitalWrite(ValveOpenPin, LOW);
-  
   if (!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens)) {          //(!locked && !digitalRead(UpperSens) && !digitalRead(LowerSens)) 
->>>>>>> master
     StartOpening();                             // not filling. we have to open before we fill. 
   }
   if (valve_btn_press) {
