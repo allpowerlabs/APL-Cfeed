@@ -1,6 +1,6 @@
  /*
 APL Continuous Feed Controller
-This code lives on an Arduino Uno that operates a prototype automatic valve for maintaining a constant
+This code lives on an Arduino Uno that operates an automatic valve for maintaining a constant
 level of solid fuel in the hopper of a power pallet. 
 */
 
@@ -74,7 +74,9 @@ boolean valve_btn_press = 0;
 unsigned long start_time = 0;
 //}
 
-
+///////////////////////////////////////////////////////////////
+// Now that preprocessor definitions are done we can start making things happen.
+///////////////////////////////////////////////////////////////
 void setup() {
   Serial.begin(57600);
   pinMode(ValveOpenPin, OUTPUT);  
@@ -165,7 +167,9 @@ void setup() {
   ///////////////////////////////////////////////////////////////////////////
 }
 
-
+/////////////////////////////////////////////////////////////////////////////
+// Main loop
+/////////////////////////////////////////////////////////////////////////////
 void loop() {
   CheckState();
  // CheckForBridging();                        //using to check top sensor states
@@ -174,6 +178,9 @@ void loop() {
   CheckButtons();
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// First check whether we are in manual or automatic mode.
+/////////////////////////////////////////////////////////////////////////////
 void CheckLocked() {                           // This function updates the LED and EEPROM mirrors of the locked bit. 
   if(locked == last_locked)                    // only run if locked has changed. (to preserve EEPROM)
     return;
@@ -182,6 +189,9 @@ void CheckLocked() {                           // This function updates the LED 
   EEPROM.write(locked_EE_address, locked);     // store new value in EEPROM
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// State machine state transitions triggered through a switch case. See bottom of doc for state enumeration of tasks.
+/////////////////////////////////////////////////////////////////////////////
 void CheckState() {
 static bool state_changed = 0; 
 static int last_state = 0;
@@ -228,10 +238,10 @@ last_state = state;
     state = 0;
   }
 }
-////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 //Hope this will indicate states of top ultrasonic sensors
 //RtSens to the BridgeLED, and Lftsens to the NoValve LED
-///////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 void CheckRtTopSensor()  {  //this based on the Check Bridging from before, but why the boolean bridging?
 if (digitalRead(RtSens) == HIGH)  {        //sensor on
@@ -252,7 +262,9 @@ if (digitalRead(LftSens) == HIGH) {
    }
 }
 
-
+/////////////////////////////////////////////////////////////////////////////
+// Listen for valve button press, debounce, update variable
+/////////////////////////////////////////////////////////////////////////////
 void CheckButtons() {
   
   static boolean last_sample;
@@ -343,6 +355,9 @@ void Opening() {
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Open state, waiting for a reason to close
+/////////////////////////////////////////////////////////////////////////////
 void Open() {                                     // this is a manual-open state.
 
   digitalWrite(ValveClosePin, LOW);               // just-in-cases.  There may be tired people working on this. 
@@ -365,11 +380,11 @@ void Open() {                                     // this is a manual-open state
   
 }
 
-///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 // The following takes care of any and every condition where the 
 // valve is moving towards the closed condition.  This includes
 // repeatedly trying to close following a valve-jam. 
-///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 void Closing() { 
   static byte close_attempts = 0;
   duration = millis() - start_time;
@@ -398,7 +413,7 @@ void Closing() {
   if (!digitalRead(ClosedSens)) {                // valve not yet closed
 		
     if (current > HighPowerCurrentThreshold) {   // valve jam 
-      if(debug) {Serial.println("valve jammed closing");
+      if(debug) {Serial.println("valve jammed closing");}
       digitalWrite(ValveClosePin, LOW);          // current trip, stop opening.  
       digitalWrite(JamLED, L_ON);
 			
@@ -426,6 +441,10 @@ void Closing() {
   }
 }
 
+
+/////////////////////////////////////////////////////////////////////////////
+// Closed state, looking for a reason to open
+/////////////////////////////////////////////////////////////////////////////
 void Closed() {
   digitalWrite(ValveClosePin, LOW);             // just-in-cases.  There may be tired people working on this. 
   digitalWrite(ValveOpenPin, LOW);
@@ -471,6 +490,9 @@ void Filling() {
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Delay time after stopping the fill auger
+/////////////////////////////////////////////////////////////////////////////
 void WaitingToClose() {
   duration = millis() - start_time;
   
@@ -486,6 +508,9 @@ void WaitingToClose() {
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Functions for a more developed valve clearing process
+/////////////////////////////////////////////////////////////////////////////
 /*void TryToClearValveJam() {
   unsigned long pause_time = 0;
   unsigned long end_time = 4000UL; 
