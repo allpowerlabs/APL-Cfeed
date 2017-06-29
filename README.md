@@ -46,3 +46,9 @@ Changed to:
 >if (digitalRead(ClosedSens)) {                // valve not yet closed 
 
 Current Threshold (current used to determine whether valve has closed) was moved back to 120 from 180. Additional current was deemed unnecessary for sealing.  
+
+#---20170629 --- Added logic in Open function that forces CFeed to close when auto/reset button is pressed. Previously, if CFeed was in manual mode and open state and the auto/reset button was pressed, the valve would remain in the open state indefinitely. 
+>if (!locked){
+>    StartClosing();
+>  }
+

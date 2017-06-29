@@ -363,6 +363,9 @@ void Open() {                                     // this is a manual-open state
   digitalWrite(ValveClosePin, LOW);               // just-in-cases.  There may be tired people working on this. 
   digitalWrite(ValveOpenPin, LOW);      
   
+  if (!locked){
+    StartClosing();
+  }
   if (valve_btn_press) {
     valve_btn_press = 0;
     locked = 1;
