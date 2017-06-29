@@ -29,3 +29,20 @@ Changelog
 
 #---20170127 --- Added some comments to break up functions more clearly and generated .hex file which will be added to Arena
 
+#---20170627 --- Version 1.2 Release
+	The primary change between the v1.1 and v1.2 is compatibility with the new CFeed inductive sensors. The old inductive sensors had a Normally Open wiring configuration. 
+	The new sensors have a Normally Closed wiring configuration. Because of this change any CFeed with the v1.2 software is no longer compatible with previous versions.
+>if (digitalRead(ClosedSens))  // if the closed sensor lit, we're already closed, so wake in closed state. 
+Changed to:
+>if (!digitalRead(ClosedSens))  // if the closed sensor light turns off, we're already closed, so wake in closed state. 
+>else if (digitalRead(OpenSens) == LOW) {        // reached fully open  
+Changed to:
+>else if (digitalRead(OpenSens) == HIGH) {        // reached fully open 
+>if (digitalRead(OpenSens) == LOW) {             // reached fully open  
+Changed to:
+>if (digitalRead(OpenSens) == HIGH) {             // reached fully open  
+>if (!digitalRead(ClosedSens)) {                // valve not yet closed 
+Changed to:
+>if (digitalRead(ClosedSens)) {                // valve not yet closed 
+
+Current Threshold (current used to determine whether valve has closed) was moved back to 120 from 180. Additional current was deemed unnecessary for sealing.  

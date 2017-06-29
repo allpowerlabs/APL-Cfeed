@@ -55,7 +55,7 @@ level of solid fuel in the hopper of a power pallet.
 //}
 
 //{ Other #defines
-#define CurrentThreshold 180           // was 80 which should be ~5A, changed to 120. Changed to 180 by SS (1/20/2017)
+#define CurrentThreshold 120           // was 80 which should be ~5A, changed to 120. Changed to 180 by SS (1/20/2017). Changed back to 120 SS (6/27/17)
 #define HighPowerCurrentThreshold 200  // should  be ~12A 
 #define L_ON 0
 #define L_OFF 1
@@ -149,7 +149,7 @@ void setup() {
   last_locked = locked;
   digitalWrite(LockedLED, (!locked));        // update LED state
 
-  if (digitalRead(ClosedSens))               // if the closed sensor is lit, we're already closed, so wake in closed state.
+  if (!digitalRead(ClosedSens))               // if the closed sensor light turns off, we're already closed, so wake in closed state.
     state = Closed_state;
 
   else if(locked)                            // if the valve is not closed, but we were locked before, stay put (open state). 
